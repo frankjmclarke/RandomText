@@ -85,6 +85,7 @@ void callProc(String proc, Map symbols) {
 }
 
 int randomIndex(int max) {
+
   Random random = new Random();
   int randomNumber = random.nextInt(max);
   return randomNumber;
