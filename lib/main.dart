@@ -1,53 +1,61 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-var exec = new List();
+
+//var exec = new List();
+//      ".PassageFeatures\nPrint Wandering Monsters\nPrint Nothing\n..RoomType\n..RoomType\nPrint 3 Doors\n\n\n" +
 void main() {
-  String text = ".Hello1\nPrint 1 Section\nPrint 2 Sections\n\n\n" +
-      ".Hello2\nPrint Wandering Monsters\nPrint Nothing\nPrint 1 Door\nPrint 2 Doors\nPrint 3 Doors\n\n\n" +
-      ".Main\n..Hello1\n..Hello2\n\n";
-
-
+  String textOld = ".PassageLength\nPrint 1 Section\nPrint 2 Sections\n\n" +
+      ".RoomType\nPrint Normal\nPrint Hazard\n\n" +
+      ".PassageFeatures\n..RoomType\n..RoomType\n\n" +
+      ".PassageEnd\nPrint T-junction\nPrint Dead End\nPrint Right Turn\nPrint Left Turn\nPrint Stairs Down\nPrint Stairs Out\n\n" +
+      ".Main\n..PassageLength\n..PassageFeatures\n..PassageEnd\n\n";
+  String text = ".PassageLength Random\nPrint 1 Section\nPrint 2 Sections\n\n" +
+      ".RoomType Random\nPrint Normal\nPrint Hazard\n\n" +
+      ".PassageFeatures Loop 3\n..RoomType\n\n" +
+      ".Main\n..PassageLength\n..PassageFeatures\n";
 
   Map aMap = readCode(text);
 
   printCode(aMap);
   //processCode(aMap);
-  callProc(".Main",aMap);
+  callProc(".Main", aMap);
 
   runApp(MyApp());
 }
 
-void runCode(Map exec, Map list){
-
-}
+void runCode(Map exec, Map list) {}
 
 Map readCode(String text) {
-  int pos=0;
+  int pos = 0;
   bool defining = false;
   var symbols = new Map();
   var codeLine = new List();
 
   String line;
-  while (pos < text.length){ //read entire file
-    line ="";
-    while (text[pos]!="\n"){ //read one line
-      line+=text[pos];
+  while (pos < text.length) {
+    //read entire file
+    line = "";
+    while (text[pos] != "\n") {
+      //read one line
+      line += text[pos];
       pos++;
     }
     print(':$line');
-    if (line.length>1 && line[0]=="." && line[1]!=".") { //new definition
+    if (line.length > 1 && line[0] == "." && line[1] != ".") {
+      //new definition
       defining = true;
       codeLine = new List();
-      symbols[line]=codeLine;
-    } else if (defining && line.length>0) {// new line of code
+      symbols[line] = codeLine;
+    } else if (defining && line.length > 0) {
+      // new line of code
       codeLine.add(line);
     }
-    if (line.length <3) {
+    if (line.length < 3) {
       defining = false;
     }
 
     if (!defining && line.startsWith("..")) {
-      exec.add(line);
+      //exec.add(line);
     }
 
     pos++;
@@ -55,37 +63,41 @@ Map readCode(String text) {
   return symbols;
 }
 
-void printCode (Map symbols) {
+void printCode(Map symbols) {
   for (var proc in symbols.keys) {
     print("Procedure : $proc, listing : ${symbols[proc]}");
   }
 }
 
-void processCode (Map symbols) {
-
+void processCode(Map symbols) {
   for (var proc in symbols.keys) {
     callProc(proc, symbols);
   }
 }
 
-void callProc(String proc, Map symbols) {
-  List codeLines = symbols[proc];
+void callProc(String procName, Map symbols) {
+  List codeLines = symbols[procName];
   int rand = randomIndex(codeLines.length);
-  String codeStr = codeLines[0];
-  if (codeStr.startsWith("Print ")) {
-    codeStr = codeLines[rand];
-    print(codeStr.replaceFirst("Print ", "__"));
-  } else if (proc.startsWith(".")) {
+  String codeStr = codeLines[rand];
+  if (codeStr.startsWith("Print ")) { //print random
+    //codeStr = codeLines[rand];
+    print(codeStr.replaceFirst("Print ", ""));
+  } else if (procName.startsWith(".")) { //was ..
     for (var i = 0; i < codeLines.length; i++) {
-    codeStr = codeLines[i];
-    print("%" + codeStr);
-    callProc(codeStr.substring(1, codeStr.length), symbols);
-     }
+
+      codeStr = codeLines[i];
+      //print("%" + codeStr);
+      //if (codeStr.startsWith("Print ")) {
+        //codeStr = codeLines[rand];
+       // print(codeStr.replaceFirst("Print ", ""));
+      //} else
+      if (!codeStr.startsWith("Print "))
+      callProc(codeStr.substring(1, codeStr.length), symbols);
+    }
   }
 }
 
 int randomIndex(int max) {
-
   Random random = new Random();
   int randomNumber = random.nextInt(max);
   return randomNumber;
