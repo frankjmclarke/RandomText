@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'dart:math';
 import 'package:stack/stack.dart' as MyStack;
+import 'package:flutter/services.dart' show rootBundle;
 
 //var exec = new List();
 //      ".PassageFeatures\nprint Wandering Monsters\nprint Nothing\n..RoomType\n..RoomType\nprint 3 Doors\n\n\n" +
@@ -10,20 +15,66 @@ enum tokens { print, random, loop }
 MyStack.Stack<String> stack = MyStack.Stack();
 
 void main() {
-  String textOld = ".PassageLength\nprint 1 Section\nprint 2 Sections\n\n" +
-      ".RoomType\nprint Normal\nprint Hazard\n\n" +
-      ".PassageFeatures\n..RoomType\n..RoomType\n\n" +
-      ".PassageEnd\nprint T-junction\nprint Dead End\nprint Right Turn\nprint Left Turn\nprint Stairs Down\nprint Stairs Out\n\n" +
-      ".Main\n..PassageLength\n";
-  String text1 =
-      ".PassageLength\nrandom\nprint 1 Section\nprint 2 Sections\n\n" +
-          ".RoomType \nrandom\nprint Normal\nprint Hazard\n\n" +
-          ".PassageFeatures\n..RoomType\n\n" +
-          ".Main\n..PassageLength\n..PassageFeatures loop 2\n";
-  String text = ".PassageLength\nprint 1 Section\nprint 2 Sections\n\n" +
-      ".RoomType \nrandom\nprint Normal\nprint Hazard\n\n" +
-      ".PassageFeatures\n..RoomType\n\n" +
-      ".Main\n..PassageLength\n..PassageFeatures loop 2\n";
+
+  String text = """.PassageLength
+random
+print 1 Section
+print 2 Sections
+print 3 Sections
+
+.RoomType
+random
+..NormalRoom
+..HazardRoom
+..Lair
+..QuestRoom
+
+
+.PassageFeatures
+random
+..WanderingMonsters
+print Nothing
+..RoomType
+
+.Lair
+random
+print Lair, one door
+print Lair, two doors
+print Lair, three doors
+
+.HazardRoom
+random
+print Hazard small room, one door
+print Hazard small room, two doors
+print Hazard small room, three doors
+
+.NormalRoom
+random
+print Normal small room, one door
+print Normal small room, two doors
+print Normal small room, three doors
+
+.QuestRoom
+random
+print Quest room, one door
+print Quest room, two doors
+print Quest room, three doors
+
+.WanderingMonsters
+random
+print 2 Warriors, 20 gc
+print 1 Sentry, 20 gc
+print 3 Warriors, 30 gc
+print 1 Warrior & 1 Champion, 30gc
+print 4 Warriors, 40 gc
+print 2 Warriors & 1 Champion, 40gc
+print 3 Warriors & 1 Sentry, 50gc
+print 4 Warriors & 1 Champion, 60gc
+
+.Main
+..PassageLength
+..PassageFeatures loop 3
+""";
 
   String textX =
       ".PassageLength\nloop 2\nprint 1 Section\nprint 2 Sections\n\n" +
@@ -64,6 +115,7 @@ Map readCode(String text) {
   var codeLine = new List();
 
   String line;
+
   while (pos < text.length) {
     //read entire file
     line = "";
@@ -85,10 +137,6 @@ Map readCode(String text) {
     }
     if (line.length < 3) {
       defining = false;
-    }
-
-    if (!defining && line.startsWith("..")) {
-      //exec.add(line);
     }
 
     pos++;
@@ -147,8 +195,7 @@ void callProc(String procName, Map symbols) {
         String countStr = last[last.length - 1];
         loopCount = int.tryParse(countStr) ?? 1;
         stack.pop();
-        for (int j=0;j<loopCount;j++)
-          stack.push(first);
+        for (int j = 0; j < loopCount; j++) stack.push(first);
       }
       token = stack.pop();
       String name = token.substring(1, token.length);
