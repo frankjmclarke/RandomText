@@ -1,18 +1,35 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:stack/stack.dart' as MyStack;
 
 //var exec = new List();
-//      ".PassageFeatures\nPrint Wandering Monsters\nPrint Nothing\n..RoomType\n..RoomType\nPrint 3 Doors\n\n\n" +
+//      ".PassageFeatures\nprint Wandering Monsters\nprint Nothing\n..RoomType\n..RoomType\nprint 3 Doors\n\n\n" +
+//      ".Main\n..PassageLength\n..PassageFeatures\n..PassageEnd\n\n";
+enum tokens { print, random, loop }
+
+MyStack.Stack<String> stack = MyStack.Stack();
+
 void main() {
-  String textOld = ".PassageLength\nPrint 1 Section\nPrint 2 Sections\n\n" +
-      ".RoomType\nPrint Normal\nPrint Hazard\n\n" +
+  String textOld = ".PassageLength\nprint 1 Section\nprint 2 Sections\n\n" +
+      ".RoomType\nprint Normal\nprint Hazard\n\n" +
       ".PassageFeatures\n..RoomType\n..RoomType\n\n" +
-      ".PassageEnd\nPrint T-junction\nPrint Dead End\nPrint Right Turn\nPrint Left Turn\nPrint Stairs Down\nPrint Stairs Out\n\n" +
-      ".Main\n..PassageLength\n..PassageFeatures\n..PassageEnd\n\n";
-  String text = ".PassageLength Random\nPrint 1 Section\nPrint 2 Sections\n\n" +
-      ".RoomType Random\nPrint Normal\nPrint Hazard\n\n" +
-      ".PassageFeatures Loop 3\n..RoomType\n\n" +
-      ".Main\n..PassageLength\n..PassageFeatures\n";
+      ".PassageEnd\nprint T-junction\nprint Dead End\nprint Right Turn\nprint Left Turn\nprint Stairs Down\nprint Stairs Out\n\n" +
+      ".Main\n..PassageLength\n";
+  String text1 =
+      ".PassageLength\nrandom\nprint 1 Section\nprint 2 Sections\n\n" +
+          ".RoomType \nrandom\nprint Normal\nprint Hazard\n\n" +
+          ".PassageFeatures\n..RoomType\n\n" +
+          ".Main\n..PassageLength\n..PassageFeatures loop 2\n";
+  String text = ".PassageLength\nprint 1 Section\nprint 2 Sections\n\n" +
+      ".RoomType \nrandom\nprint Normal\nprint Hazard\n\n" +
+      ".PassageFeatures\n..RoomType\n\n" +
+      ".Main\n..PassageLength\n..PassageFeatures loop 2\n";
+
+  String textX =
+      ".PassageLength\nloop 2\nprint 1 Section\nprint 2 Sections\n\n" +
+          ".RoomType \nrandom\nprint Normal\nprint Hazard\n\n" +
+          ".PassageFeatures\nrandom\n..RoomType\n\n" +
+          ".Main\n..PassageLength\n..PassageFeatures\n";
 
   Map aMap = readCode(text);
 
@@ -21,6 +38,21 @@ void main() {
   callProc(".Main", aMap);
 
   runApp(MyApp());
+}
+
+String getToken(var aToken) {
+  switch (aToken) {
+    case tokens.print:
+      return "print";
+      break;
+    case tokens.random:
+      return "random";
+      break;
+    case tokens.loop:
+      return "loop";
+      break;
+  }
+  return "";
 }
 
 void runCode(Map exec, Map list) {}
@@ -40,6 +72,7 @@ Map readCode(String text) {
       line += text[pos];
       pos++;
     }
+    line = line.trim();
     print(':$line');
     if (line.length > 1 && line[0] == "." && line[1] != ".") {
       //new definition
@@ -63,6 +96,10 @@ Map readCode(String text) {
   return symbols;
 }
 
+String symbolKey(String name) {
+  int index = name.indexOf(' ');
+}
+
 void printCode(Map symbols) {
   for (var proc in symbols.keys) {
     print("Procedure : $proc, listing : ${symbols[proc]}");
@@ -71,28 +108,115 @@ void printCode(Map symbols) {
 
 void processCode(Map symbols) {
   for (var proc in symbols.keys) {
-    callProc(proc, symbols);
+    List codeLines = symbols[proc];
+    String zeroLine = codeLines[0].toString();
+    int loopCount = getLoopCount(zeroLine);
+    for (int i = 0; i < loopCount; i++) callProc(proc, symbols);
+  }
+}
+
+int getLoopCount(String zeroLine) {
+  int result = 1;
+  if (zeroLine.startsWith("loop")) {
+    var last = zeroLine.split(" ");
+    String countStr = last[last.length - 1];
+    result = int.tryParse(countStr) ?? 1;
+  }
+  return result;
+}
+
+void doStack(MyStack.Stack<String> stack) {
+  while (stack.isNotEmpty) {
+    String token = stack.top();
+    if (token.startsWith("..")) print("SS " + stack.pop());
   }
 }
 
 void callProc(String procName, Map symbols) {
   List codeLines = symbols[procName];
-  int rand = randomIndex(codeLines.length);
-  String codeStr = codeLines[rand];
-  if (codeStr.startsWith("Print ")) { //print random
-    //codeStr = codeLines[rand];
-    print(codeStr.replaceFirst("Print ", ""));
-  } else if (procName.startsWith(".")) { //was ..
-    for (var i = 0; i < codeLines.length; i++) {
+  for (int ind = codeLines.length - 1; ind >= 0; ind--)
+    stack.push(codeLines[ind]);
 
-      codeStr = codeLines[i];
-      //print("%" + codeStr);
-      //if (codeStr.startsWith("Print ")) {
+  while (stack.isNotEmpty) {
+    String token = stack.top();
+    if (token.startsWith("..")) {
+      int loopCount = 1;
+      if (token.contains(" loop ")) {
+        var first = token.split(" ")[0];
+        var last = token.split(" ");
+        String countStr = last[last.length - 1];
+        loopCount = int.tryParse(countStr) ?? 1;
+        stack.pop();
+        for (int j=0;j<loopCount;j++)
+          stack.push(first);
+      }
+      token = stack.pop();
+      String name = token.substring(1, token.length);
+      List codeLines2 = symbols[name];
+
+      if (codeLines2[0].toString().startsWith("random")) {
+        stack.push(codeLines2[1 + randomIndex(codeLines2.length - 1)]);
+      } else {
+        for (int ind = codeLines2.length - 1; ind >= 0; ind--) {
+          stack.push(codeLines2[ind]);
+        } //end for
+      }
+    } else //!token.startsWith("..")
+      print("SS " + stack.pop());
+  }
+}
+
+void callProcZ(String procName, Map symbols) {
+  // test no loop
+
+  List codeLines = symbols[procName];
+  for (int ind = 0; ind < codeLines.length; ind++) stack.push(codeLines[ind]);
+
+  while (stack.isNotEmpty) {
+    //doStack(stack);
+  }
+
+  int rand = 1 + randomIndex(codeLines.length - 1); //second to last
+  String codeStr;
+  int codeStart = 0;
+  String zeroLine = codeLines[0].toString();
+  int loopCount = getLoopCount(zeroLine);
+
+  if (zeroLine.startsWith("random"))
+    codeStr = codeLines[rand];
+  else
+    codeStr = codeLines[1];
+  if (zeroLine.startsWith("loop")) {
+    var last = zeroLine.split(" ");
+    String countStr = last[last.length - 1];
+    loopCount = int.tryParse(countStr) ?? 1;
+    codeStart = 1;
+  }
+
+  for (int j = 0; j < codeLines.length; j++) {
+    //  for (int j = 0; j < loopCount; j++) {
+    if (zeroLine.startsWith("random")) {
+      rand = 1 + randomIndex(codeLines.length - 1); //second to last
+      codeStr = codeLines[rand];
+    } else
+      codeStr = codeLines[1];
+    if (codeStr.startsWith("print ")) {
+      //print random
+      codeStr = codeLines[j];
+
+      print(codeStr.replaceFirst(getToken(tokens.print) + " ", ""));
+    } else if (procName.startsWith(".")) {
+      //was ..
+      for (var i = codeStart; i < codeLines.length; i++) {
+        codeStr = codeLines[i];
+        //print("%" + codeStr);
+        //if (codeStr.startsWith("Print ")) {
         //codeStr = codeLines[rand];
-       // print(codeStr.replaceFirst("Print ", ""));
-      //} else
-      if (!codeStr.startsWith("Print "))
-      callProc(codeStr.substring(1, codeStr.length), symbols);
+        // print(codeStr.replaceFirst("Print ", ""));
+        //} else
+        if (!codeStr.startsWith("print ") && !codeStr.startsWith("random"))
+          callProc(codeStr.substring(1, codeStr.length), symbols);
+      }
     }
   }
 }
@@ -105,8 +229,8 @@ int randomIndex(int max) {
 
 bool _isEditingText = false;
 TextEditingController _editingController;
-String xtext = ".Hello\nPrint 1..50 1 Section\nPrint 51..100 2 Sections\n.End\n\n" +
-    ".Hello2\nPrint 1..20 Wandering Monsters\nPrint 21..40 Nothing\nPrint 41..60 1 Door\nPrint 61..90 2 Doors\nPrint 91..100 3 Doors\n.End\n\n" +
+String xtext = ".Hello\nprint 1..50 1 Section\nprint 51..100 2 Sections\n.End\n\n" +
+    ".Hello2\nprint 1..20 Wandering Monsters\nprint 21..40 Nothing\nprint 41..60 1 Door\nprint 61..90 2 Doors\nprint 91..100 3 Doors\n.End\n\n" +
     ".BigHello\n..Hello1\n..Hello2\n.End\n";
 
 /*
@@ -119,6 +243,34 @@ String xtext = ".Hello\nPrint 1..50 1 Section\nPrint 51..100 2 Sections\n.End\n\
   // do something with the file.
 });
  */
+
+void callProcOld(String procName, Map symbols) {
+  List codeLines = symbols[procName];
+  int rand = 1 + randomIndex(codeLines.length - 1); //second to last
+  String codeStr;
+  int loopCount = 0;
+  if (codeLines[0].toString().startsWith("random"))
+    codeStr = codeLines[rand];
+  else
+    codeStr = codeLines[1];
+  if (codeLines[0].toString().startsWith("loop")) loopCount = 2;
+  if (codeStr.startsWith("print ")) {
+    //print random
+    print(codeStr.replaceFirst(getToken(tokens.print) + " ", ""));
+  } else if (procName.startsWith(".")) {
+    //was ..
+    for (var i = 0; i < codeLines.length; i++) {
+      codeStr = codeLines[i];
+      //print("%" + codeStr);
+      //if (codeStr.startsWith("Print ")) {
+      //codeStr = codeLines[rand];
+      // print(codeStr.replaceFirst("Print ", ""));
+      //} else
+      if (!codeStr.startsWith(getToken(tokens.print) + " "))
+        callProc(codeStr.substring(1, codeStr.length), symbols);
+    }
+  }
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
