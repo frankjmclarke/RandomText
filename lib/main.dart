@@ -1,11 +1,6 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
 import 'dart:math';
 import 'package:stack/stack.dart' as MyStack;
-import 'package:flutter/services.dart' show rootBundle;
 
 //var exec = new List();
 //      ".PassageFeatures\nprint Wandering Monsters\nprint Nothing\n..RoomType\n..RoomType\nprint 3 Doors\n\n\n" +
@@ -15,7 +10,6 @@ enum tokens { print, random, loop }
 MyStack.Stack<String> stack = MyStack.Stack();
 
 void main() {
-
   String text = """.PassageLength
 random
 print 1 Section
@@ -42,23 +36,29 @@ print Lair, one door
 print Lair, two doors
 print Lair, three doors
 
+.RoomDoors
+random
+print one door
+print two doors
+print three doors
+
 .HazardRoom
 random
-print Hazard small room, one door
-print Hazard small room, two doors
-print Hazard small room, three doors
+print Hazard small room with...RoomDoors
+print Hazard small room with...RoomDoors
+print Hazard small room with...RoomDoors
 
 .NormalRoom
 random
-print Normal small room, one door
-print Normal small room, two doors
-print Normal small room, three doors
+print Normal small room with...RoomDoors
+print Normal small room with...RoomDoors
+print Normal small room with...RoomDoors
 
 .QuestRoom
 random
-print Quest room, one door
-print Quest room, two doors
-print Quest room, three doors
+print Quest room with...RoomDoors
+print Quest room with...RoomDoors
+print Quest room with...RoomDoors
 
 .WanderingMonsters
 random
@@ -78,7 +78,7 @@ print 4 Warriors & 1 Champion, 60gc
 
   Map aMap = readCode(text);
 
-  printCode(aMap);
+  //printCode(aMap);
   //processCode(aMap);
   callProc(".Main", aMap);
 
@@ -119,7 +119,7 @@ Map readCode(String text) {
       pos++;
     }
     line = line.trim();
-    print(':$line');
+    //print(':$line');
     if (line.length > 1 && line[0] == "." && line[1] != ".") {
       //new definition
       defining = true;
@@ -163,13 +163,6 @@ int getLoopCount(String zeroLine) {
   return result;
 }
 
-void doStack(MyStack.Stack<String> stack) {
-  while (stack.isNotEmpty) {
-    String token = stack.top();
-    if (token.startsWith("..")) print("SS " + stack.pop());
-  }
-}
-
 void callProc(String procName, Map symbols) {
   List codeLines = symbols[procName];
   for (int ind = codeLines.length - 1; ind >= 0; ind--)
@@ -177,6 +170,15 @@ void callProc(String procName, Map symbols) {
 
   while (stack.isNotEmpty) {
     String token = stack.top();
+    if (token.contains("...")) {
+      var tokens = token.split("..");
+      stack.pop();
+      for (int i = tokens.length - 1; i >= 0; i--) {
+        if (tokens[i].startsWith(".")) tokens[i] = "." + tokens[i];
+        stack.push(tokens[i]);
+      }
+      token = stack.top();
+    }
     if (token.startsWith("..")) {
       if (token.contains(" loop ")) {
         var first = token.split(" ")[0];
@@ -197,8 +199,13 @@ void callProc(String procName, Map symbols) {
           stack.push(codeLines2[ind]);
         } //end for
       }
-    } else //!token.startsWith("..")
-      print("SS " + stack.pop());
+    } else {
+      token = stack.pop();
+      if (token.startsWith("print ")) {
+        token = token.replaceFirst("print ", "");
+      }
+      print(token);
+    }
   }
 }
 
