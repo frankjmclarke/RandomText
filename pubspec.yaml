@@ -25,6 +25,7 @@ dependencies:
     sdk: flutter
   path: ^1.6.2
   cupertino_icons: ^1.0.0
+  text_editor: ^0.3.2
 
 
 dev_dependencies:
@@ -42,6 +43,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/story.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
-import 'package:stack/stack.dart' as MyStack;
+import 'code.dart';
+import 'package:text_editor/text_editor.dart';
 
-//var exec = new List();
-//      ".PassageFeatures\nprint Wandering Monsters\nprint Nothing\n..RoomType\n..RoomType\nprint 3 Doors\n\n\n" +
-//      ".Main\n..PassageLength\n..PassageFeatures\n..PassageEnd\n\n";
-enum tokens { print, random, loop }
 
-MyStack.Stack<String> stack = MyStack.Stack();
 
-void main() {
-  String text = """.PassageLength
+
+String text2 = "";
+String sourceText = """.PassageLength
 random
 print 1 Section
 print 2 Sections
@@ -27,7 +23,7 @@ random
 .PassageFeatures
 random
 ..WanderingMonsters
-print Nothing
+print Corridor is empty
 ..RoomType
 
 .Lair
@@ -44,44 +40,69 @@ print three doors
 
 .HazardRoom
 random
-print Hazard small room with...RoomDoors
-print Hazard small room with...RoomDoors
-print Hazard small room with...RoomDoors
+write Hazard small room with...WanderingMonsters ...RoomDoors
+write Hazard small room with NPC ...RoomDoors
+write Hazard small room with Chasm ...RoomDoors
+write Hazard small room with Statue ...RoomDoors
+write Hazard small room with Rats or Bats ...RoomDoors
+write Hazard small room with Mould ...RoomDoors
+write Hazard small room with Mushrooms...RoomDoors
+write Hazard small room with Grate ...RoomDoors
+write Hazard small room with Pool ...RoomDoors
+write Hazard small room with Magic Circle ...RoomDoors
+write Hazard small room with Trapdoor ...RoomDoors
+write Hazard small room with Throne ...RoomDoors
 
 .NormalRoom
 random
-print Normal small room with...RoomDoors
-print Normal small room with...RoomDoors
-print Normal small room with...RoomDoors
+write Normal small room with ...RoomDoors
+write Normal small room with ...RoomDoors
+write Normal small room with ...RoomDoors
 
 .QuestRoom
 random
-print Quest room with...RoomDoors
-print Quest room with...RoomDoors
-print Quest room with...RoomDoors
+write Quest room with ...RoomDoors...QuestMonsters
+write Quest room with ...RoomDoors...QuestMonsters
+write Quest room with ...RoomDoors...QuestMonsters
+
+.QuestMonsters
+random
+print 2 Champions & 1 Warlord, 100 gc
+print 6 Warriors & 2 Champions, 100 gc
+print 8 Warriors & 1 Champions, 100 gc
+print 4 Warriors, 1 Sentry & 1 Warlord, 120gc
+print 3 Champions & 1 Warlord, 120gc
+print 8 Warriors & 2 Champions, 120gc
+print 2 Warriors, 2 Champions & 1 Warlord, 120gc
+print 6 Warriors, 1 Sentry & 1 Warlord,140gc
+print 4 Warriors, 2 Champions & 1 Warlord, 140gc 
+print 8 Warriors & 3 Champions, 140gc
+print 4 Champions & 1 Warlord, 140gc
+print 12 Warriors, 1 Sentry & 1 Champion, 160gc
 
 .WanderingMonsters
 random
-print 2 Warriors, 20 gc
-print 1 Sentry, 20 gc
-print 3 Warriors, 30 gc
-print 1 Warrior & 1 Champion, 30gc
-print 4 Warriors, 40 gc
-print 2 Warriors & 1 Champion, 40gc
-print 3 Warriors & 1 Sentry, 50gc
-print 4 Warriors & 1 Champion, 60gc
+print 2 Wandering Warriors, 20 gc
+print 1 Wandering Sentry, 20 gc
+print 3 Wandering Warriors, 30 gc
+print 1 WanderingWarrior & 1 Champion, 30gc
+print 4 Wandering Warriors, 40 gc
+print 2 Wandering Warriors & 1 Champion, 40gc
+print 3 Wandering Warriors & 1 Sentry, 50gc
+print 4 Wandering Warriors & 1 Champion, 60gc
 
 .Main
 ..PassageLength
-..PassageFeatures loop 3
+..PassageFeatures loop 2
 """;
 
-  Map aMap = readCode(text);
-
-  //printCode(aMap);
-  //processCode(aMap);
-  callProc(".Main", aMap);
-
+String _text=text2;
+void main() {
+  var myCode = new ExecuteCode();
+  Map aMap = myCode.readCode(sourceText);
+  String outStr = myCode.callProc(".Main", aMap);
+  _text = outStr;
+  int i = 0;
   runApp(MyApp());
 }
 
@@ -100,138 +121,15 @@ String getToken(var aToken) {
   return "";
 }
 
-void runCode(Map exec, Map list) {}
-
-Map readCode(String text) {
-  int pos = 0;
-  bool defining = false;
-  var symbols = new Map();
-  var codeLine = new List();
-
-  String line;
-
-  while (pos < text.length) {
-    //read entire file
-    line = "";
-    while (text[pos] != "\n") {
-      //read one line
-      line += text[pos];
-      pos++;
-    }
-    line = line.trim();
-    //print(':$line');
-    if (line.length > 1 && line[0] == "." && line[1] != ".") {
-      //new definition
-      defining = true;
-      codeLine = new List();
-      symbols[line] = codeLine;
-    } else if (defining && line.length > 0) {
-      // new line of code
-      codeLine.add(line);
-    }
-    if (line.length < 3) {
-      defining = false;
-    }
-
-    pos++;
-  }
-  return symbols;
-}
-
-void printCode(Map symbols) {
-  for (var proc in symbols.keys) {
-    print("Procedure : $proc, listing : ${symbols[proc]}");
-  }
-}
-
-void processCode(Map symbols) {
-  for (var proc in symbols.keys) {
-    List codeLines = symbols[proc];
-    String zeroLine = codeLines[0].toString();
-    int loopCount = getLoopCount(zeroLine);
-    for (int i = 0; i < loopCount; i++) callProc(proc, symbols);
-  }
-}
-
-int getLoopCount(String zeroLine) {
-  int result = 1;
-  if (zeroLine.startsWith("loop")) {
-    var last = zeroLine.split(" ");
-    String countStr = last[last.length - 1];
-    result = int.tryParse(countStr) ?? 1;
-  }
-  return result;
-}
-
-void callProc(String procName, Map symbols) {
-  List codeLines = symbols[procName];
-  for (int ind = codeLines.length - 1; ind >= 0; ind--)
-    stack.push(codeLines[ind]);
-
-  while (stack.isNotEmpty) {
-    String token = stack.top();
-    if (token.contains("...")) {
-      var tokens = token.split("..");
-      stack.pop();
-      for (int i = tokens.length - 1; i >= 0; i--) {
-        if (tokens[i].startsWith(".")) tokens[i] = "." + tokens[i];
-        stack.push(tokens[i]);
-      }
-      token = stack.top();
-    }
-    if (token.startsWith("..")) {
-      if (token.contains(" loop ")) {
-        var first = token.split(" ")[0];
-        var last = token.split(" ");
-        String countStr = last[last.length - 1];
-        int loopCount = int.tryParse(countStr) ?? 1;
-        stack.pop();
-        for (int j = 0; j < loopCount; j++) stack.push(first);
-      }
-      token = stack.pop();
-      String name = token.substring(1, token.length);
-      List codeLines2 = symbols[name];
-
-      if (codeLines2[0].toString().startsWith("random")) {
-        stack.push(codeLines2[1 + randomIndex(codeLines2.length - 1)]);
-      } else {
-        for (int ind = codeLines2.length - 1; ind >= 0; ind--) {
-          stack.push(codeLines2[ind]);
-        } //end for
-      }
-    } else {
-      token = stack.pop();
-      if (token.startsWith("print ")) {
-        token = token.replaceFirst("print ", "");
-      }
-      print(token);
-    }
-  }
-}
-
-int randomIndex(int max) {
-  Random random = new Random();
-  int randomNumber = random.nextInt(max);
-  return randomNumber;
-}
-
-bool _isEditingText = false;
-TextEditingController _editingController;
-String xtext = ".Hello\nprint 1..50 1 Section\nprint 51..100 2 Sections\n.End\n\n" +
-    ".Hello2\nprint 1..20 Wandering Monsters\nprint 21..40 Nothing\nprint 41..60 1 Door\nprint 61..90 2 Doors\nprint 91..100 3 Doors\n.End\n\n" +
-    ".BigHello\n..Hello1\n..Hello2\n.End\n";
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      title: 'Random Text',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(),
       home: MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
@@ -240,15 +138,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -256,84 +145,127 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final fonts = [
+    'OpenSans',
+    'Billabong',
+    'GrandHotel',
+    'Oswald',
+    'Quicksand',
+    'BeautifulPeople',
+    'BeautyMountains',
+    'BiteChocolate',
+    'BlackberryJam',
+    'BunchBlossoms',
+    'CinderelaRegular',
+    'Countryside',
+    'Halimun',
+    'LemonJelly',
+    'QuiteMagicalRegular',
+    'Tomatoes',
+    'TropicalAsianDemoRegular',
+    'VeganStyle',
+  ];
+  TextStyle _textStyle = TextStyle(
+    fontSize: 15,
+    color: Colors.white,
+    fontFamily: 'Billabong',
+  );
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+
+
+  TextAlign _textAlign = TextAlign.center;
+
+  void _tapHandler(text, textStyle, textAlign) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      transitionDuration: Duration(
+        milliseconds: 400,
+      ), // how long it takes to popup dialog after button click
+      pageBuilder: (_, __, ___) {
+        // your widget implementation
+        return Container(
+          color: Colors.black.withOpacity(0.4),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              // top: false,
+              child: Container(
+                child: TextEditor(
+                  fonts: fonts,
+                  text: text,
+                  textStyle: textStyle,
+                  textAlingment: textAlign,
+                  // paletteColors: [
+                  //   Colors.black,
+                  //   Colors.white,
+                  //   Colors.blue,
+                  //   Colors.red,
+                  //   Colors.green,
+                  //   Colors.yellow,
+                  //   Colors.pink,
+                  //   Colors.cyanAccent,
+                  // ],
+                  // decoration: EditorDecoration(
+                  //   doneButton: Icon(Icons.close, color: Colors.white),
+                  //   fontFamily: Icon(Icons.title, color: Colors.white),
+                  //   colorPalette: Icon(Icons.palette, color: Colors.white),
+                  //   alignment: AlignmentDecoration(
+                  //     left: Text(
+                  //       'left',
+                  //       style: TextStyle(color: Colors.white),
+                  //     ),
+                  //     center: Text(
+                  //       'center',
+                  //       style: TextStyle(color: Colors.white),
+                  //     ),
+                  //     right: Text(
+                  //       'right',
+                  //       style: TextStyle(color: Colors.white),
+                  //     ),
+                  //   ),
+                  // ),
+                  onEditCompleted: (style, align, text) {
+                    setState(() {
+                      _text = text;
+                      _textStyle = style;
+                      _textAlign = align;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-            _editTitleTextField(),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
-  }
-
-  Widget _editTitleTextField() {
-    if (_isEditingText)
-      return Center(
-        child: TextField(
-          onSubmitted: (newValue) {
-            setState(() {
-              xtext = newValue;
-              _isEditingText = false;
-            });
-          },
-          autofocus: true,
-          controller: _editingController,
-        ),
-      );
-    return InkWell(
-        onTap: () {
-          setState(() {
-            _isEditingText = true;
-          });
-        },
-        child: Text(
-          xtext,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18.0,
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: Stack(
+            children: [
+              Image.asset('assets/story.png'),
+              Center(
+                child: GestureDetector(
+                  onTap: () => _tapHandler(_text, _textStyle, _textAlign),
+                  child: Text(
+                    _text,
+                    style: _textStyle,
+                    textAlign: _textAlign,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 }
